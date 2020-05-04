@@ -10,6 +10,15 @@ import com.ranrings.libs.androidapptorest.HandlerRepo.WebAppRequestHandler
 import com.ranrings.libs.androidapptorest.WebAppExtractor
 
 import com.ranrings.nomorelogslib.HttpTransactionRepo.Companion.transactionList
+import com.ranrings.nomorelogslib.apistopper.ApiModifiedResponse
+import com.ranrings.nomorelogslib.apistopper.ApiStopEnable
+import com.ranrings.nomorelogslib.apistopper.CurrentReceivedApiResponse
+import com.ranrings.nomorelogslib.apistopper.ResponseModifyInterceptor
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Response
+import okhttp3.ResponseBody
+import org.json.JSONObject
 import java.io.File
 
 internal class ApiLogServer {
@@ -84,6 +93,48 @@ internal class ApiLogServer {
                         override fun getMethodName(): String {
                             return "weblogpublic"
                         }
+                    }).
+                    addRequestHandler(object : PostRequestHandler<ApiStopEnable, String>(ApiStopEnable::class) {
+                    override fun getMethodName(): String {
+                        return "enableapistop"
+                    }
+
+                    override fun onRequest(requestBody: ApiStopEnable): String {
+                        ResponseModifyInterceptor.waitForResponseInput = requestBody.enableApiStop
+                        return "Done"
+                    }
+
+                    }).
+                    addRequestHandler(object : PostRequestHandler<ApiModifiedResponse, String>(ApiModifiedResponse::class) {
+                        override fun getMethodName(): String {
+                            return "modifyResponse"
+                        }
+
+                        override fun onRequest(requestBody: ApiModifiedResponse): String {
+                            ResponseModifyInterceptor.submittedInput = ResponseModifyInterceptor.currentReceivedResponse!!.newBuilder()
+                                .code(requestBody.responseCode)
+                                .body(ResponseModifyInterceptor.createRequestBodyFromJsonString(requestBody.responseBody)).build()
+                            ResponseModifyInterceptor.waitForResponseInput = false
+                            ResponseModifyInterceptor.resetState()
+                            return "Done"
+                        }
+
+                    }).addRequestHandler(object : GetRequestHandler<CurrentReceivedApiResponse>() {
+                        override fun getMethodName(): String {
+                            return "getCurrentState"
+                        }
+
+                        override fun onGetRequest(uri: String): CurrentReceivedApiResponse {
+                           ResponseModifyInterceptor.currentReceivedResponse?.let {
+                               ResponseModifyInterceptor.currentReceivedResponseJson?.run {
+                                   return CurrentReceivedApiResponse(it.code,this,ResponseModifyInterceptor.currentUrl,true,
+                                           ResponseModifyInterceptor.waitForResponseInput)
+                               }
+                           }
+                            return CurrentReceivedApiResponse(null,null,"",false,
+                                    ResponseModifyInterceptor.waitForResponseInput)
+                        }
+
                     })
                     .build()
                     val webfolder = File(getWebFolderPath(application))

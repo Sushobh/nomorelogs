@@ -163,6 +163,7 @@ import okio.GzipSource
                 }
             }
 
+
             for (i in 0 until headers.size) {
                 logHeader(headers, i , httpTransaction)
             }

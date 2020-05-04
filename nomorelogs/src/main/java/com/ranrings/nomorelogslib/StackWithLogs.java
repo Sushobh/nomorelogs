@@ -14,6 +14,7 @@ import androidx.core.app.NotificationManagerCompat;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.toolbox.HttpStack;
+import com.ranrings.nomorelogslib.apistopper.ResponseModifyInterceptor;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -52,12 +53,14 @@ public class StackWithLogs implements HttpStack {
     private Application application;
     private HttpTransactionRepo httpTransactionRepo;
     private WebAPILogInspector webAPILogInspector;
+    private ResponseModifyInterceptor responseModifyInterceptor;
     private static final String NOTIFICATION_CHANNEL_ID = "213123";
 
     public StackWithLogs(Application application,int portToRunServerOn, int maxHistoryOfApiCalls) {
         this.application = application;
         this.httpTransactionRepo = new HttpTransactionRepo();
         webAPILogInspector = new WebAPILogInspector(httpTransactionRepo);
+        responseModifyInterceptor = new ResponseModifyInterceptor();
         ApiLogServer.Companion.setMAX_API_CALLS_TO_SEND(maxHistoryOfApiCalls);
         ApiLogServer.Companion.setPORT(portToRunServerOn);
         startRestServer();
@@ -111,6 +114,7 @@ public class StackWithLogs implements HttpStack {
 
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
         clientBuilder.addInterceptor(webAPILogInspector);
+        clientBuilder.addInterceptor(responseModifyInterceptor);
         int timeoutMs = request.getTimeoutMs();
 
         clientBuilder.connectTimeout(timeoutMs, TimeUnit.MILLISECONDS);
