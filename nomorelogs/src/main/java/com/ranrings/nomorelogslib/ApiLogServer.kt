@@ -85,6 +85,15 @@ internal class ApiLogServer {
                             return "apilogapp"
                         }
                     })
+                .addRequestHandler(object : WebAppRequestHandler(application) {
+                    override fun getIndexHtmlFilePath(): String {
+                        return getWebFolderPath(application)+"/index.html"
+                    }
+
+                    override fun getMethodName(): String {
+                        return "apiPause"
+                    }
+                })
                     .addRequestHandler(object : PublicFileRequestHandler(application) {
                         override fun getFilePath(uri: String): String {
                             return getWebFolderPath(application)+"/${uri.split("/")[2]}"
@@ -92,6 +101,25 @@ internal class ApiLogServer {
 
                         override fun getMethodName(): String {
                             return "weblogpublic"
+                        }
+                    }).
+                    addRequestHandler(object : PublicFileRequestHandler(application) {
+                        override fun getFilePath(uri: String): String {
+                            val assetFilePath = uri.substring(uri.indexOf('/')+1)
+                            val fullPath =  getWebFolderPath(application)+"/${assetFilePath}"
+                            return fullPath
+                        }
+
+                        override fun getMethodName(): String {
+                            return "assets"
+                        }
+
+                        override fun getMimeType(requestUri: String): String {
+                            val mimeType = super.getMimeType(requestUri)
+                            if(mimeType.equals("application/css")){
+                                return "text/css"
+                            }
+                            return mimeType
                         }
                     }).
                     addRequestHandler(object : PostRequestHandler<ApiStopEnable, String>(ApiStopEnable::class) {
