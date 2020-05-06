@@ -143,7 +143,6 @@ internal class ApiLogServer {
                                 .code(requestBody.responseCode)
                                 .body(ResponseModifyInterceptor.createRequestBodyFromJsonString(requestBody.responseBody)).build()
                             ResponseModifyInterceptor.waitForResponseInput = false
-                            ResponseModifyInterceptor.resetState()
                             return "Done"
                         }
 
