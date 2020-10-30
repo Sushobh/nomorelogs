@@ -20,7 +20,7 @@ internal class HttpTransactionRepo : HttpTransactionListener {
     }
 
     override fun onTransactionComplete(httpTransaction: HttpTransaction) {
-         toString()
+
     }
 
     override fun onTransactionFailed(message: String, httpTransaction: HttpTransaction) {

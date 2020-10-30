@@ -29,11 +29,16 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
 import okhttp3.Call;
 import okhttp3.Headers;
+import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
@@ -50,71 +55,35 @@ import static android.content.Context.WIFI_SERVICE;
  */
 public class StackWithLogs implements HttpStack {
 
-    private Application application;
     private HttpTransactionRepo httpTransactionRepo;
     private WebAPILogInspector webAPILogInspector;
     private ResponseModifyInterceptor responseModifyInterceptor;
-    private static final String NOTIFICATION_CHANNEL_ID = "213123";
+    private List<Interceptor> interceptors = new ArrayList<>();
 
-    public StackWithLogs(Application application,int portToRunServerOn, int maxHistoryOfApiCalls) {
-        this.application = application;
+
+    public StackWithLogs() {
         this.httpTransactionRepo = new HttpTransactionRepo();
-        webAPILogInspector = new WebAPILogInspector(httpTransactionRepo);
+        webAPILogInspector = new WebAPILogInspector();
         responseModifyInterceptor = new ResponseModifyInterceptor();
-        ApiLogServer.Companion.setMAX_API_CALLS_TO_SEND(maxHistoryOfApiCalls);
-        ApiLogServer.Companion.setPORT(portToRunServerOn);
-        startRestServer();
+        interceptors.add(webAPILogInspector);
+        interceptors.add(responseModifyInterceptor);
     }
 
-    private void startRestServer() {
-         ApiLogServer.Companion.get(application).start();
-         createNotificationChannel();
-         displayNotification();
+    public StackWithLogs(List<Interceptor> interceptors) {
+        super();
+        this.interceptors.addAll(interceptors);
     }
 
-    private void createNotificationChannel() {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = application.getString(R.string.channel_name);
-            String description = application.getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            NotificationManager notificationManager = application.getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-        }
-    }
-
-    private void displayNotification() {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(application,
-                NOTIFICATION_CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_wood)
-                .setContentTitle("View Logs here")
-                .setOngoing(true)
-                .setContentText(getIpAddress()+":"+ApiLogServer.Companion.getPORT()+"/apilogapp")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(application);
-        notificationManager.notify(100, builder.build());
-    }
-
-    private String getIpAddress() {
-        WifiManager wifiMgr = (WifiManager)application. getSystemService(WIFI_SERVICE);
-        WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-        int ip = wifiInfo.getIpAddress();
-        return  Formatter.formatIpAddress(ip);
-    }
 
     @Override
     public HttpResponse performRequest(com.android.volley.Request<?> request, Map<String, String> additionalHeaders)
             throws IOException, AuthFailureError {
 
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
-        clientBuilder.addInterceptor(webAPILogInspector);
-        clientBuilder.addInterceptor(responseModifyInterceptor);
+        for(Interceptor interceptor : interceptors){
+            clientBuilder.addInterceptor(interceptor);
+        }
         int timeoutMs = request.getTimeoutMs();
 
         clientBuilder.connectTimeout(timeoutMs, TimeUnit.MILLISECONDS);

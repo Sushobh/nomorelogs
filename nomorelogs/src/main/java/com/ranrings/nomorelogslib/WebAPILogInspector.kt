@@ -14,8 +14,9 @@ import okio.GzipSource
 
 
  class WebAPILogInspector @JvmOverloads constructor(
-    private val logger: Logger = Logger.DEFAULT ,var  httpTransactionListener: HttpTransactionListener
+    private val logger: Logger = Logger.DEFAULT ,var  httpTransactionListener: HttpTransactionListener = HttpTransactionRepo()
 ) : Interceptor {
+
 
     @Volatile private var headersToRedact = emptySet<String>()
 
