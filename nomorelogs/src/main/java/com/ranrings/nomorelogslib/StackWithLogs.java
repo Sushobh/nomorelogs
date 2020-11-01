@@ -14,6 +14,7 @@ import androidx.core.app.NotificationManagerCompat;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.toolbox.HttpStack;
+import com.chuckerteam.chucker.api.ChuckerInterceptor;
 import com.ranrings.nomorelogslib.apistopper.ResponseModifyInterceptor;
 
 import org.apache.http.HttpEntity;
@@ -58,7 +59,7 @@ public class StackWithLogs implements HttpStack {
     private HttpTransactionRepo httpTransactionRepo;
     private WebAPILogInspector webAPILogInspector;
     private ResponseModifyInterceptor responseModifyInterceptor;
-    private List<Interceptor> interceptors = new ArrayList<>();
+    protected List<Interceptor> interceptors = new ArrayList<>();
 
 
     public StackWithLogs() {
